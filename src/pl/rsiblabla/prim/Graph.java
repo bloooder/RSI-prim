@@ -32,12 +32,11 @@ public class Graph implements Serializable {
 		newGraph.nodes = new GraphNode[nodes];
 		for (int i = 0; i < nodes; i++) {
 			GraphNode newNode = new GraphNode();
-			newNode.links = new GraphLink[rand.nextInt(maxLinksPerNode)];
-			for (int j = 0; j < newNode.links.length; j++) {
+			for (int j = 0; j < newNode.links.size(); j++) {
 				GraphLink newLink = new GraphLink();
 				newLink.destinationNodeNr = rand.nextInt(nodes);
 				newLink.weight = rand.nextInt(maxWeight);
-				newNode.links[j] = newLink;
+				newNode.links.add(newLink);
 			}
 			newGraph.nodes[i] = newNode;
 		}

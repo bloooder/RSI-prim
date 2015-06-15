@@ -10,14 +10,13 @@ import java.util.Scanner;
 public class IO {
 	public static Graph loadGraph(File file) throws FileNotFoundException {
 		Graph result = new Graph();
-		ArrayList<GraphLink> links = new ArrayList<GraphLink>();
 		Scanner sc = new Scanner(file);
 		int nodeAmount = Integer.parseInt(sc.nextLine());
 		result.nodes = new GraphNode[nodeAmount];
 		for (int i = 0; i < result.nodes.length; i++) {
 			GraphNode node = new GraphNode();
 			String linkStr = sc.nextLine();
-			links.clear();
+			ArrayList<GraphLink> links = new ArrayList<GraphLink>();
 			String[] linkStrInts = linkStr.split(" ");
 			for (int j = 0; j < linkStrInts.length; j += 2) {
 				int nodeNr = Integer.parseInt(linkStrInts[j]);
@@ -27,7 +26,7 @@ public class IO {
 				link.weight = weight;
 				links.add(link);
 			}
-			node.links = links.toArray(new GraphLink[links.size()]);
+			node.links = links;
 			result.nodes[i] = node;
 		}
 		sc.close();
@@ -39,6 +38,10 @@ public class IO {
 		StringBuilder strBldr = new StringBuilder();
 		out.println(graph.nodes.length);
 		for(GraphNode node : graph.nodes) {
+			if(node.links.size() == 0) {
+				out.println();
+				continue;
+			}
 			strBldr.setLength(0);
 			for(GraphLink link : node.links) {
 				strBldr.append(link.destinationNodeNr);

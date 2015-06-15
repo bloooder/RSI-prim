@@ -50,12 +50,21 @@ public class Slave {
 	private static void listenMaster() throws IOException {
 		
 		String message = in.readLine();
-		if(message == "GIBMELINKPLOX") {
+		if(message.equals("GIBMELINKPLOX")) {
 			String outMessage = searchForLightestLink();
 			sendToMaster(outMessage);
-		} else if (message.startsWith("USED")) {
-				String[] splitted = message.split(" ");
-				visitedNodes[Integer.parseInt(splitted[1])] = true;
+		} else if (message.startsWith("STARTNODE")) {
+			String[] splitted = message.split(" ");
+			int nodeNr = Integer.parseInt(splitted[1]);
+			visitedNodes[nodeNr] = true;
+		}else if (message.startsWith("USEDLINK")) {
+			String[] splitted = message.split(" ");
+			int nodeNr = Integer.parseInt(splitted[1]);
+			int destNr = Integer.parseInt(splitted[2]);
+			visitedNodes[destNr] = true;
+			int localNodeNr = nodeNr - subGraph.nodeNrOffset;
+			if(localNodeNr >= 0 && localNodeNr < subGraph.nodes.length)
+				subGraph.usedLinks[localNodeNr]++;
 		} else if (message == "THEEND") {
 			endProgram = true;
 		} else {
@@ -70,27 +79,28 @@ public class Slave {
 
 	public static String searchForLightestLink() {
 		int bestWeight = Integer.MAX_VALUE;
-		int nodeNr = 0;
-		int linkNr = 0;
+		int nodeNr = -1;
+		int destNr = 0;
 		for (int i = 0; i < subGraph.nodes.length; i++) {
+			if(!visitedNodes[i])
+				continue;
 			GraphNode node = subGraph.nodes[i];
 			//check if all links used
-			if(subGraph.usedLinks[i] == node.links.length)
+			if(subGraph.usedLinks[i] == node.links.size())
 				continue;
-			for (int j = 0; j < node.links.length; j++) {
-				GraphLink link = node.links[j];
+			for (GraphLink link : node.links) {
 				//check if link is redundant
 				if(visitedNodes[link.destinationNodeNr])
 					continue;
 				if(link.weight < bestWeight) {
 					nodeNr = i;
-					linkNr = j;
+					destNr = link.destinationNodeNr;
 					bestWeight = link.weight;
 				}
 			}
 		}
 		nodeNr += subGraph.nodeNrOffset;
-		return nodeNr + " " + linkNr;
+		return nodeNr + " " + destNr;
 	}
 
 	private static void openConnection() throws IOException {

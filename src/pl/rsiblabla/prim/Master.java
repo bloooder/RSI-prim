@@ -64,11 +64,13 @@ public class Master {
 	}
 
 	private static void createLocalSlave() {
-		new Thread(new Runnable() {
+		Thread local = new Thread(new Runnable() {
 			@Override public void run() {
 				Slave.run();
 			}
-		}).start();
+		});
+		local.setName("localSlave");
+		local.start();
 		try {
 			addSlave("127.0.0.1");
 		} catch (UnknownHostException e) {
@@ -104,7 +106,7 @@ public class Master {
 			System.out.println("Type number of nodes (type 'back' to return):");
 			try {
 				String str = stdIn.readLine();
-				if(str == "back")
+				if(str.equals("back"))
 					return;
 				nodeAmount = Integer.parseInt(str);
 				break;
@@ -118,7 +120,7 @@ public class Master {
 			System.out.println("Type max number of links per node (type 'back' to return):");
 			try {
 				String str = stdIn.readLine();
-				if(str == "back")
+				if(str.equals("back"))
 					return;
 				maxLinks = Integer.parseInt(str);
 				break;
@@ -132,7 +134,7 @@ public class Master {
 			System.out.println("Type max weight (type 'back' to return):");
 			try {
 				String str = stdIn.readLine();
-				if(str == "back")
+				if(str.equals("back"))
 					return;
 				maxWeight = Integer.parseInt(str);
 				break;
@@ -150,9 +152,9 @@ public class Master {
 			System.out.println("Type path to file (type 'back' to return):");
 			try {
 				String str = stdIn.readLine();
-				if(str == "back")
+				if(str.equals("back"))
 					return;
-				File file = new File("str");
+				File file = new File(str);
 				graph = IO.loadGraph(file);
 				break;
 			} catch (FileNotFoundException e) {
@@ -168,13 +170,14 @@ public class Master {
 	
 	private static void generateMSTMenu() {
 		File file;
+		int startNode = 0;
 		while(true) {
 			System.out.println("Choose file path (type 'back' to return):");
 			try {
 				String str = stdIn.readLine();
-				if(str == "back")
+				if(str.equals("back"))
 					return;
-				file = new File("str");
+				file = new File(str);
 				break;
 			} catch (FileSystemException e) {
 				System.out.println("Incorrect path!");
@@ -184,8 +187,26 @@ public class Master {
 			}
 		}
 		
-		Graph mst = generateMST();
+		while(true) {
+			System.out.println("Choose start node nr (type 'back' to return):");
+			try {
+				String str = stdIn.readLine();
+				if(str.equals("back"))
+					return;
+				startNode = Integer.parseInt(str);
+				if(startNode < 0 || startNode >= graph.nodes.length)
+					throw new NumberFormatException();
+				break;
+			} catch (NumberFormatException e) {
+				System.out.println("Incorrect value!");
+				continue;
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		}
+		
 		try {
+			Graph mst = generateMST(startNode);
 			IO.saveGraph(mst, file);
 		} catch (IOException e) {
 			e.printStackTrace();
@@ -239,15 +260,37 @@ public class Master {
 		}
 	}
 	
-	public static Graph generateMST() {
+	public static Graph generateMST(int startNode) throws IOException {
 		SubGraph[] subgraphs = graph.divideIntoSubgraphs(slaves.size());
-		try {
-			sendSubGraphs(subgraphs);
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+		sendSubGraphs(subgraphs);
+		
+		Graph mst = new Graph();
+		mst.nodes = new GraphNode[graph.nodes.length];
+		for (int i = 0; i < mst.nodes.length; i++)
+			mst.nodes[i] = new GraphNode();
+		
+		for (Socket slave : slaves)
+			sendMessage("STARTNODE " + startNode, slave);
+		
+		int linkAmount = graph.nodes.length-1;
+		for (int i = 0; i < linkAmount; i++) {
+			NetGraphLink bestLink = findLightestLink();
+			if(bestLink.nodeNr == -1)
+				throw new IOException("Link not found???");
+			GraphLink newLink = new GraphLink();
+			newLink.destinationNodeNr = bestLink.destNr;
+			for(GraphLink link : graph.nodes[bestLink.nodeNr].links)
+				if(link.destinationNodeNr == newLink.destinationNodeNr) {
+					newLink.weight = link.weight;
+					break;
+				}
+			mst.nodes[bestLink.nodeNr].links.add(newLink);
+			
+			for(Socket slave : slaves)
+				sendMessage("USEDLINK " + bestLink.nodeNr + " " + bestLink.destNr, slave);
 		}
-		return graph;
+		
+		return mst;
 	}
 	
 	public static NetGraphLink findLightestLink() throws IOException {
@@ -277,20 +320,25 @@ public class Master {
 	}
 
 	public static class NetGraphLink {
-		public static final NetGraphLink EMPTY_LINK = new NetGraphLink(Integer.MAX_VALUE);
+		public static final NetGraphLink EMPTY_LINK = new NetGraphLink(-1, Integer.MAX_VALUE);
 		int nodeNr;
-		int linkNr;
+		int destNr;
 		int weight;
 		
-		private NetGraphLink(int weight) {
+		private NetGraphLink(int nodeNr, int weight) {
+			this.nodeNr = nodeNr;
 			this.weight = weight;
 		}
 		
 		public NetGraphLink(String string) {
 			String[] splitted = string.split(" ");
 			nodeNr = Integer.parseInt(splitted[0]);
-			linkNr = Integer.parseInt(splitted[1]);
-			weight = graph.nodes[nodeNr].links[linkNr].weight;
+			destNr = Integer.parseInt(splitted[1]);
+			for(GraphLink link : graph.nodes[nodeNr].links)
+				if(link.destinationNodeNr == destNr) {
+					weight = link.weight;
+					break;
+				}
 		}
 	}
 }
