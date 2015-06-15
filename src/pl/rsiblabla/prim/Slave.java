@@ -8,7 +8,6 @@ import java.io.ObjectInputStream;
 import java.io.PrintWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.util.ArrayList;
 
 public class Slave {
 	public static ServerSocket portListener;
@@ -18,7 +17,7 @@ public class Slave {
 	public static SubGraph subGraph;
 	public static boolean endProgram = false;
 	
-	public static ArrayList<Integer> visitedNodes = new ArrayList<Integer>();
+	public static boolean[] visitedNodes;
 	
 	public static void run() {
 		try {
@@ -54,6 +53,9 @@ public class Slave {
 		if(message == "GIBMELINKPLOX") {
 			String outMessage = searchForLightestLink();
 			sendToMaster(outMessage);
+		} else if (message.startsWith("USED")) {
+				String[] splitted = message.split(" ");
+				visitedNodes[Integer.parseInt(splitted[1])] = true;
 		} else if (message == "THEEND") {
 			endProgram = true;
 		} else {
@@ -78,7 +80,7 @@ public class Slave {
 			for (int j = 0; j < node.links.length; j++) {
 				GraphLink link = node.links[j];
 				//check if link is redundant
-				if(visitedNodes.contains(link.destinationNodeNr))
+				if(visitedNodes[link.destinationNodeNr])
 					continue;
 				if(link.weight < bestWeight) {
 					nodeNr = i;
@@ -103,5 +105,6 @@ public class Slave {
 		System.out.println("Downloading subgraph");
 		subGraph = (SubGraph) objInStream.readObject();
 		System.out.println("Subgraph downloaded!");
+		visitedNodes = new boolean[subGraph.totalNodeAmount];
 	}
 }

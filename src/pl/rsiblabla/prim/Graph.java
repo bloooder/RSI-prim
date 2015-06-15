@@ -12,6 +12,7 @@ public class Graph implements Serializable {
 		SubGraph[] result = new SubGraph[parts];
 		for (int i = 0; i < parts; i++) {
 			SubGraph subGraph = new SubGraph();
+			subGraph.totalNodeAmount = nodes.length;
 			int startIndex = i * nodes.length / parts;
 			int endIndex = ((i+1) * nodes.length / parts) - 1;
 			subGraph.nodeNrOffset = startIndex;
