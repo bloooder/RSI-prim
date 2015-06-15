@@ -81,10 +81,12 @@ public class Slave {
 		int bestWeight = Integer.MAX_VALUE;
 		int nodeNr = -1;
 		int destNr = 0;
-		for (int i = 0; i < subGraph.nodes.length; i++) {
+		int indexTo = subGraph.nodes.length + subGraph.nodeNrOffset;
+		for (int i = subGraph.nodeNrOffset; i < indexTo; i++) {
 			if(!visitedNodes[i])
 				continue;
-			GraphNode node = subGraph.nodes[i];
+			//i - offset because it's subgraph!
+			GraphNode node = subGraph.nodes[i - subGraph.nodeNrOffset];
 			//check if all links used
 			if(subGraph.usedLinks[i] == node.links.size())
 				continue;
@@ -99,7 +101,8 @@ public class Slave {
 				}
 			}
 		}
-		nodeNr += subGraph.nodeNrOffset;
+		if(nodeNr != -1)
+			nodeNr += subGraph.nodeNrOffset;
 		return nodeNr + " " + destNr;
 	}
 

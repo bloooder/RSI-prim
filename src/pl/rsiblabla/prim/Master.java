@@ -333,6 +333,10 @@ public class Master {
 		public NetGraphLink(String string) {
 			String[] splitted = string.split(" ");
 			nodeNr = Integer.parseInt(splitted[0]);
+			if(nodeNr == -1) {
+				weight = Integer.MAX_VALUE;
+				return;
+			}
 			destNr = Integer.parseInt(splitted[1]);
 			for(GraphLink link : graph.nodes[nodeNr].links)
 				if(link.destinationNodeNr == destNr) {
